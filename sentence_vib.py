@@ -1,51 +1,57 @@
 import tensorflow as tf
 from tensorflow.keras.layers import *
-from tensorflow.keras import datasets
-from layers import AttentionPooling1D, VIB, MultiHeadAttentionPooling1D
+from tensorflow.keras.models import Model
 
-# imdb: 0.8888
+from dataset import X_train, X_test, y_train, y_test
+from dataset import num_classes, maxlen, num_chars
+from mask_max_pooling import MaskGlobalMaxPooling1D
 
-maxlen = 128 * 3
 hdims = 128
-num_words = 5000
-with_vib = False
 
-(X_train, y_train), (X_test, y_test) = datasets.imdb.load_data(num_words=num_words)
-X_train = tf.keras.preprocessing.sequence.pad_sequences(X_train, maxlen=maxlen)
-X_test = tf.keras.preprocessing.sequence.pad_sequences(X_test, maxlen=maxlen)
-y_train = tf.keras.utils.to_categorical(y_train)
-y_test = tf.keras.utils.to_categorical(y_test)
+# 0.9096
 
-inputs = tf.keras.layers.Input(shape=(maxlen,))
-x = inputs
-x_mask = Lambda(lambda x: tf.not_equal(x, 0))(x)
+class VIB(tf.keras.layers.Layer):
 
-embedding = Embedding(num_words, output_dim=hdims, embeddings_initializer="normal", mask_zero=True)
-conv1 = Conv1D(filters=hdims, kernel_size=2, padding="same", activation="relu")
-conv2 = Conv1D(filters=hdims, kernel_size=3, padding="same", activation="relu")
-conv3 = Conv1D(filters=hdims, kernel_size=4, padding="same", activation="relu")
-# pool = AttentionPooling1D(hdims)
-pool = MultiHeadAttentionPooling1D(hdims, heads=2)
+    def __init__(self, alpha, **kwargs):
+        super(VIB, self).__init__(**kwargs)
+        self.alpha = alpha
 
-x = embedding(x)
-x = conv1(x)
-x = conv2(x)
-x = conv3(x)
-x = pool(x, mask=x_mask)
+    @tf.function
+    def call(self, inputs, training):
+        z_mean, z_log_var = inputs
+        kl_loss = - 0.5 * tf.reduce_sum(
+            tf.reduce_mean(1 + z_log_var - tf.square(z_mean) - tf.exp(z_log_var), 0)
+        )
+        self.add_loss(self.alpha * kl_loss)
+        if training:
+            u = tf.random.normal(shape=tf.shape(z_mean))
+        else:
+            u = 0.0
+        return z_mean + tf.exp(z_log_var / 2) * u
 
-# for VIB
-if with_vib:
-    d1 = Dense(hdims)
-    d2 = Dense(hdims)
-    vib = VIB(0.3)
+    def compute_output_shape(self, input_shape):
+        return input_shape[0]
 
-    z_mean = d1(x)
-    z_log_var = d2(x)
-    x = vib([z_mean, z_log_var])
+inputs = Input(shape=(maxlen,))
+mask = Lambda(lambda x: tf.not_equal(x, 0))(inputs)
+embedding = Embedding(num_chars, hdims, embeddings_initializer="normal", mask_zero=True)
 
-outputs = Dense(2, activation="softmax")(x)
-model = tf.keras.Model(inputs, outputs)
-model.compile(loss="categorical_crossentropy", optimizer="adam", metrics=["accuracy"])
+x = embedding(inputs)
+x = Conv1D(filters=hdims, kernel_size=2, padding="same", activation="relu")(x)
+x = MaskGlobalMaxPooling1D()(x, mask=mask)
+
+# VIB
+d1 = Dense(hdims)
+d2 = Dense(hdims)
+vib = VIB(alpha=0.3)
+
+z_mean = d1(x)
+z_log_var = d2(x) # 求log不用激活处理
+x = vib([z_mean, z_log_var])
+
+outputs = Dense(num_classes, activation="softmax")(x)
+model = Model(inputs, outputs)
 model.summary()
+model.compile(loss="categorical_crossentropy", optimizer="adam", metrics=["accuracy"])
 
-model.fit(X_train, y_train, batch_size=32, epochs=10, validation_data=(X_test, y_test))
+model.fit(X_train, y_train, shuffle=True, batch_size=32, epochs=10, validation_data=(X_test, y_test))
