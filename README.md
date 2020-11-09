@@ -1,12 +1,15 @@
 # sentence-embedding
 
 
-AttentionPooling
+无监督句向量：
+- AttentionPooling
+- SIF
+- 类似图像哈希的方法
+- VIB sentence
+- MaskAveragePooling
+- MaskMaxPooling
+- MinVariancePooling
+- PowerPooling
+- PowerMeanPooling
 
-SIF
-
-类似图像哈希的方法
-
-VIB sentence
-
-无监督句向量的常用方法和实现
+由于序列是变长的，因此都提供mask处理。

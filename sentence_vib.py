@@ -11,6 +11,7 @@ hdims = 128
 # 0.9096
 
 class VIB(tf.keras.layers.Layer):
+    """作为句向量的正则化手段"""
 
     def __init__(self, alpha, **kwargs):
         super(VIB, self).__init__(**kwargs)
