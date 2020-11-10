@@ -27,15 +27,14 @@ class MinVariancePooling(tf.keras.layers.Layer):
 		else:
 			mask = tf.expand_dims(tf.cast(mask, tf.float32), -1)
 		mu = tf.reduce_mean(inputs, axis=2, keepdims=True) # 均值
-		var = self.alpha * tf.reduce_sum(tf.pow(inputs - mu, 2), axis=2, keepdims=True) # 方差的无偏估计
-		var = var - (1 - mask) * 1e12 # 倒数的mask处理
+		var = self.alpha * tf.reduce_sum(tf.square(inputs - mu), axis=2, keepdims=True) # 方差的无偏估计
+		var = var + (1 - mask) * 1e12 # 倒数的mask处理
 		ivar = 1 / var
 		w = ivar / tf.reduce_sum(ivar, axis=1, keepdims=True)
-		return tf.reduce_sum(inputs * w, axis=1)
+		return tf.reduce_sum(inputs * w * mask, axis=1)
 
 inputs = Input(shape=(maxlen,))
 mask = Lambda(lambda x: tf.not_equal(x, 0))(inputs)
-# 尝试不同的Embedding初始化
 embedding = Embedding(num_chars, hdims, embeddings_initializer="normal", mask_zero=True)
 
 x = embedding(inputs)

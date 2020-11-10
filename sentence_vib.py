@@ -31,7 +31,6 @@ class VIB(tf.keras.layers.Layer):
         super(VIB, self).__init__(**kwargs)
         self.alpha = alpha
 
-    # @tf.function
     def call(self, inputs, training):
         z_mean, z_log_var = inputs
         kl_loss = 0.5 * tf.reduce_sum(
@@ -58,7 +57,7 @@ x = MaskGlobalMaxPooling1D()(x, mask=mask)
 # VIB
 d1 = Dense(hdims)
 d2 = Dense(hdims)
-vib = VIB(alpha=0.3)
+vib = VIB(alpha=0.1)
 
 z_mean = d1(x)
 z_log_var = d2(x) # 求log不用激活处理

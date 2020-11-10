@@ -4,6 +4,10 @@ import tensorflow as tf
 from tensorflow.keras.preprocessing import sequence
 from sklearn.model_selection import train_test_split
 
+physical_devices = tf.config.experimental.list_physical_devices("GPU")
+assert len(physical_devices) > 0, "Not enough GPU hardware devices available"
+tf.config.experimental.set_memory_growth(physical_devices[0], True)
+
 _THUCNews = "/home/zhiwen/workspace/dataset/THUCNews-title-label.txt"
 def load_THUCNews_title_label(file=_THUCNews):
     with open(file, encoding="utf-8") as fd:
@@ -73,7 +77,7 @@ class CharTokenizer:
 
 # 处理数据
 X, y, classes = load_THUCNews_title_label()
-X_train, X_test, y_train, y_test = train_test_split(X, y, train_size=0.8, random_state=732)
+X_train, X_test, y_train, y_test = train_test_split(X, y, train_size=0.7, random_state=6732)
 
 num_classes = len(classes)
 # 转化成字id
