@@ -63,4 +63,4 @@ model = Model(inputs, outputs)
 model.summary()
 model.compile(loss="categorical_crossentropy", optimizer="adam", metrics=["accuracy"])
 
-model.fit(X_train, y_train, shuffle=True, batch_size=32, epochs=10, validation_data=(X_test, y_test))
+model.fit(X_train, y_train, shuffle=True, batch_size=32, epochs=30, validation_data=(X_test, y_test))

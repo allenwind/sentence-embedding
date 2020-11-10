@@ -73,7 +73,7 @@ class CharTokenizer:
 
 # 处理数据
 X, y, classes = load_THUCNews_title_label()
-X_train, X_test, y_train, y_test = train_test_split(X, y, train_size=0.7, random_state=732)
+X_train, X_test, y_train, y_test = train_test_split(X, y, train_size=0.8, random_state=732)
 
 num_classes = len(classes)
 # 转化成字id

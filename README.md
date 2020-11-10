@@ -8,6 +8,8 @@
 - VIB sentence
 - MaskAveragePooling
 - MaskMaxPooling
+- MaskMinPooling
+- MaskMaxMinPooling
 - MinVariancePooling
 - PowerPooling
 - PowerMeanPooling

@@ -7,23 +7,25 @@ from dataset import num_classes, maxlen, num_chars
 
 hdims = 128
 
-class PowerMeanPooling(tf.keras.layers.Layer):
-	"""类似Minkowski distance
-	https://en.wikipedia.org/wiki/Generalized_mean"""
+# 0.9105
 
-	def __init__(self, p=2, **kwargs):
-		super(PowerMeanPooling, self).__init__(**kwargs)
-		self.p = p
+class MaskGlobalMaxMinPooling1D(tf.keras.layers.Layer):
+    
+    def __init__(self, **kwargs):
+        super(MaskGlobalMaxMinPooling1D, self).__init__(**kwargs)
 
-	def call(self, inputs, mask=None):
-		if mask is None:
-			mask = 1
-		else:
-			mask = tf.expand_dims(tf.cast(mask, "float32"), -1)
-		x = tf.pow(inputs, self.p)
-		x = tf.reduce_sum(x, axis=1)
-		x = x / (tf.reduce_sum(mask, axis=1) + 1e-12)
-		return tf.pow(x, 1 / self.p)
+    def call(self, inputs, mask=None):
+        if mask is None:
+            mask = 1
+        else:
+            # 扩展维度便于广播
+            mask = tf.expand_dims(tf.cast(mask, "float32"), -1)
+        x = inputs
+        x1 = x - (1 - mask) * 1e12 # 用一个大的负数mask
+        x1 = tf.reduce_max(x1, axis=1)
+        x2 = x + (1 - mask) * 1e12
+        x2 = tf.reduce_min(x2, axis=1)
+        return tf.concat([x1, x2], axis=1)
 
 inputs = Input(shape=(maxlen,))
 mask = Lambda(lambda x: tf.not_equal(x, 0))(inputs)
@@ -31,7 +33,7 @@ embedding = Embedding(num_chars, hdims, embeddings_initializer="normal", mask_ze
 
 x = embedding(inputs)
 x = Conv1D(filters=hdims, kernel_size=2, padding="same", activation="relu")(x)
-x = PowerMeanPooling(p=2)(x, mask=mask)
+x = MaskGlobalMaxMinPooling1D()(x, mask=mask)
 outputs = Dense(num_classes, activation="softmax")(x)
 model = Model(inputs, outputs)
 model.summary()
