@@ -1,5 +1,38 @@
 import tensorflow as tf
 
+class WordEmbeddingInitializer(tf.keras.initializers.Initializer):
+    """基于训练好的词向量初始化"""
+
+    def __init__(self, vocab, path, kind="word2vec"):
+        # gensim.models.Word2Vec.load
+        # gensim.models.KeyedVectors.load
+        if kind == "word2vec":
+            from gensim.models import Word2Vec as Model
+        else:
+            from gensim.models import KeyedVectors as Model
+        model = Model.load(path)
+        self.vocab = vocab
+        self.word2id = {w:i for i, w in enumerate(model.wv.index2word)}
+        self.word2vec = model.wv.syn0
+        self.input_dim = len(self.vocab) + 2
+        self.output_dim = self.word2vec.shape[-1]
+
+    def __call__(self, shape, dtype=None):
+        # 0 for MASK
+        # 1 for UNK
+        embeddings = np.zeros(shape)
+        for word, _id in self.vocab.items():
+            w2v_id = self.word2id.get(word, "UNK")
+            if w2v_id != "UNK":
+                embeddings[_id] = self.word2vec[w2v_id]
+            else:
+                embeddings[1] = np.zeros(shape=(1, shape[-1]))
+        return tf.cast(embeddings, dtype=dtype)
+
+    @property
+    def shape(self):
+        return (self.input_dim, self.output_dim)
+
 class SinCosInitializer(tf.keras.initializers.Initializer):
 
     def __init__(self, alpha):
@@ -76,6 +109,7 @@ class LearnablePositionEmbedding(tf.keras.layers.Layer):
         return (None, input_shape[1], self.output_dim)
 
 if __name__ == "__main__":
+    # for test
     import numpy as np
     import matplotlib.pyplot as plt
     a = np.random.randn(1, 150, 510)
