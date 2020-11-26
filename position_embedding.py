@@ -17,9 +17,11 @@ class WordEmbeddingInitializer(tf.keras.initializers.Initializer):
         self.input_dim = len(self.vocab) + 2
         self.output_dim = self.word2vec.shape[-1]
 
-    def __call__(self, shape, dtype=None):
+    def __call__(self, shape=None, dtype=None):
         # 0 for MASK
         # 1 for UNK
+        if shape is None:
+            shape = self.shape
         embeddings = np.zeros(shape)
         for word, _id in self.vocab.items():
             w2v_id = self.word2id.get(word, "UNK")
@@ -108,8 +110,32 @@ class LearnablePositionEmbedding(tf.keras.layers.Layer):
     def compute_output_shape(self, input_shape):
         return (None, input_shape[1], self.output_dim)
 
+class PositionEmbedding(tf.keras.layers.Layer):
+    """可学习的位置Embedding，一种更简单的实现"""
+
+    def __init__(self, maxlen, output_dim, **kwargs):
+        super(PositionEmbedding, self).__init__(**kwargs)
+        self.maxlen = maxlen
+        self.output_dim = output_dim
+        self.embedding = tf.keras.layers.Embedding(
+            input_dim=maxlen,
+            output_dim=output_dim
+        )
+
+    def call(self, inputs):
+        maxlen = tf.shape(inputs)[-1]
+        positions = tf.range(start=0, limit=maxlen, delta=1)
+        return self.embedding(positions)
+
+    def plot(self):
+        import matplotlib.pyplot as plt
+        import numpy as np
+        pe = tf.convert_to_tensor(self.embedding.embeddings)
+        plt.imshow(pe)
+        plt.show()
+
 if __name__ == "__main__":
-    # for test
+    # for testing
     import numpy as np
     import matplotlib.pyplot as plt
     a = np.random.randn(1, 150, 510)

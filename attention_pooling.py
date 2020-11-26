@@ -28,8 +28,8 @@ class AttentionPooling1D(tf.keras.layers.Layer):
         )
         self.o_dense = tf.keras.layers.Dense(
             units=1,
-            kernel_regularizer="l1", # 添加稀疏性
-            kernel_constraint=tf.keras.constraints.non_neg(), # 添加非负约束
+            # kernel_regularizer="l1", # 添加稀疏性
+            # kernel_constraint=tf.keras.constraints.non_neg(), # 添加非负约束
             use_bias=False
         )
 
