@@ -4,6 +4,7 @@
 无监督句向量：
 - AttentionPooling
 - SIF
+- TFIDF weights
 - 类似图像哈希的方法
 - VIB sentence
 - MaskAveragePooling
