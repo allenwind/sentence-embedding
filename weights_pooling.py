@@ -7,10 +7,10 @@ from dataset import num_classes, maxlen, num_chars
 
 hdims = 128
 
-class AttentionPooling1D(tf.keras.layers.Layer):
+class AutoWeightPooling1D(tf.keras.layers.Layer):
 
     def __init__(self, h_dim, kernel_initializer="glorot_uniform", **kwargs):
-        super(AttentionPooling1D, self).__init__(**kwargs)
+        super(AutoWeightPooling1D, self).__init__(**kwargs)
         self.h_dim = h_dim
         self.kernel_initializer = tf.keras.initializers.get(
             kernel_initializer
@@ -22,14 +22,12 @@ class AttentionPooling1D(tf.keras.layers.Layer):
         self.k_dense = tf.keras.layers.Dense(
             units=self.h_dim,
             kernel_initializer=self.kernel_initializer,
-            #kernel_regularizer="l2",
             activation="tanh",
             use_bias=False,
         )
         self.o_dense = tf.keras.layers.Dense(
             units=1,
-            # kernel_regularizer="l1", # 添加稀疏性
-            # kernel_constraint=tf.keras.constraints.non_neg(), # 添加非负约束
+            kernel_regularizer="l1", # 添加稀疏性
             use_bias=False
         )
 
@@ -43,12 +41,8 @@ class AttentionPooling1D(tf.keras.layers.Layer):
         # 计算每个 time steps 权重
         x = self.k_dense(inputs)
         x = self.o_dense(x)
-        # 处理 mask
-        x = x - (1 - mask) * 1e12
-        # 权重归一化
-        x = tf.math.softmax(x, axis=1) # 有mask位置对应的权重变为很小的值
         # 加权平均
-        x = tf.reduce_sum(x * x0, axis=1)
+        x = tf.reduce_sum(x * x0 * mask, axis=1) / tf.reduce_sum(x * mask, axis=1)
         return x
 
 inputs = Input(shape=(maxlen,))
@@ -57,7 +51,7 @@ embedding = Embedding(num_chars, hdims, embeddings_initializer="normal", mask_ze
 
 x = embedding(inputs)
 x = Conv1D(filters=hdims, kernel_size=2, padding="same", activation="relu")(x)
-x = AttentionPooling1D(hdims)(x, mask=mask)
+x = AutoWeightPooling1D(hdims)(x, mask=mask)
 outputs = Dense(num_classes, activation="softmax")(x)
 model = Model(inputs, outputs)
 model.summary()
