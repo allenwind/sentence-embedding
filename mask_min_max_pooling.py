@@ -10,6 +10,8 @@ hdims = 128
 # 0.9105
 
 class MaskGlobalMaxMinPooling1D(tf.keras.layers.Layer):
+    """一般来说CNN后加relu激活下，minpooling不起作用，
+    这里的实现仅作为实验"""
     
     def __init__(self, **kwargs):
         super(MaskGlobalMaxMinPooling1D, self).__init__(**kwargs)

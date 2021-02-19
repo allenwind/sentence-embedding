@@ -10,7 +10,7 @@
 - VIB sentence
 - MaskAveragePooling
 - MaskMaxPooling
-- MaskMinPooling
+- MaskMinPooling（在RELU激活后不起作用）
 - MaskMaxMinPooling
 - MinVariancePooling
 - PowerPooling
